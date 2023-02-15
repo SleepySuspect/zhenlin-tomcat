@@ -81,6 +81,15 @@ public class Response extends AbstractHttpServletResponse{
     }
 
     private void sendResponseHeader() throws Exception{
+
+        if(!headers.containsKey("Content-Length")){
+            headers.put("Content-Length", String.valueOf(getOutputStream().getPos()));
+        }
+
+        if(!headers.containsKey("Content-Type")){
+            headers.put("Content-Type", "text/plain;charset=utf-8");
+        }
+
         for (Map.Entry<String, String> entry :
                 headers.entrySet()) {
             String key = entry.getKey();

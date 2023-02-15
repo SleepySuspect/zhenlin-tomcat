@@ -1,5 +1,8 @@
 package com.zhenlin;
 
+import com.sun.org.apache.xpath.internal.SourceTree;
+
+import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,9 +11,11 @@ import java.net.Socket;
 public class SocketProcessor implements Runnable{
 
     private Socket socket;
+    private Tomcat tomcat;
 
-    public SocketProcessor(Socket socket) {
+    public SocketProcessor(Socket socket, Tomcat tomcat) {
         this.socket = socket;
+        this.tomcat = tomcat;
     }
 
     @Override
@@ -64,12 +69,34 @@ public class SocketProcessor implements Runnable{
             }
             Request request = new Request(method.toString(), url.toString(), protocl.toString(), socket);
             Response response = new Response(request);
-            ZhenlinServlet zhenlinServlet = new ZhenlinServlet();
 
-            zhenlinServlet.service(request, response);
+            //匹配Servlet  执行doGet方法
+//            ZhenlinServlet zhenlinServlet = new ZhenlinServlet();
+//            zhenlinServlet.service(request, response);
 
-            //发送响应
-            response.complete();
+            String requestUrl = request.getRequestUrl().toString();
+            requestUrl = requestUrl.substring(1);
+            String[] parts = requestUrl.split("/");
+
+            String appName = parts[0];
+            Context context = tomcat.getContextMap().get(appName);
+            if (parts.length > 1){
+                Servlet servlet = context.getByUrlPattern(parts[1]);
+
+                if (servlet != null){
+                    servlet.service(request, response);
+
+                    //发送响应
+                    response.complete();
+                }else {
+                    //404 等错误请求  找不到servlet的处理方法
+                    DefaultServlet defaultServlet = new DefaultServlet();
+                    defaultServlet.service(request, response);
+                    response.complete();
+                }
+
+            }
+
 
 
 //            //解析字符流
